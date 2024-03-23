@@ -1,0 +1,10 @@
+[workspace]
+
+members = [
+    "kliprs-api",
+    "kliprs-cli",
+    "kliprs-core",
+    "kliprs-utils",
+]
+
+resolver = "2"
