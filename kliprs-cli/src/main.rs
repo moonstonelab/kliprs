@@ -1,15 +1,16 @@
 extern crate clipboard;
 
-use clipboard::ClipboardProvider;
 use clipboard::ClipboardContext;
-
-fn example() {
-    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-    println!("{:?}", ctx.get_contents());
-    ctx.set_contents("some string".to_owned()).unwrap();
-    println!("{:?}", ctx.get_contents());
-}
+use clipboard::ClipboardProvider;
 
 fn main() {
-    example()
+    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+
+    loop {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        println!("{:?}", ctx.get_contents());
+        ctx.set_contents("some string".to_owned()).unwrap();
+        println!("{:?}", ctx.get_contents());
+    }
 }
