@@ -5,12 +5,9 @@ use clipboard::ClipboardProvider;
 
 fn main() {
     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-
-    loop {
-        std::thread::sleep(std::time::Duration::from_secs(1));
-
-        println!("{:?}", ctx.get_contents());
-        ctx.set_contents("some string".to_owned()).unwrap();
-        println!("{:?}", ctx.get_contents());
-    }
+    let curr_content = ctx.get_contents().unwrap();
+    println!("{:?}", curr_content);
+    ctx.set_contents(String::from("Hello, world!")).unwrap();
+    let curr_content = ctx.get_contents().unwrap();
+    println!("{:?}", curr_content);
 }
