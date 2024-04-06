@@ -1,9 +1,16 @@
 use actix_web::{web, App, HttpServer};
 use clipboard::ClipboardContext;
 use clipboard::ClipboardProvider;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::{params, Result};
+use std::sync::Arc;
+use tokio::task;
 
 // Your data collection function with a loop and delay
-async fn collect_data_loop() -> Result<(), std::io::Error> {
+async fn collect_data_loop(
+    pool: Arc<Pool<SqliteConnectionManager>>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
     let mut prev_content: String = ctx.get_contents().unwrap();
 
@@ -25,9 +32,41 @@ async fn collect_data_loop() -> Result<(), std::io::Error> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Initialize the SQLite connection pool
+    let manager = SqliteConnectionManager::file("db.sqlite3");
+    let pool = match Pool::new(manager) {
+        Ok(pool) => Arc::new(pool),
+        Err(e) => {
+            eprintln!("Failed to create pool: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // Initialize the SQLite database
+    let conn = pool.get().unwrap();
+    // Create the table
+    match conn.execute(
+        "CREATE TABLE IF NOT EXISTS items (
+            id INTEGER PRIMARY KEY,
+            label TEXT,
+            content TEXT NOT NULL,
+            collection TEXT NOT NULL,
+            pined BOOLEAN NOT NULL,
+            hidden BOOLEAN NOT NULL
+        )",
+        params![],
+    ) {
+        Ok(_) => println!("Table created successfully."),
+        Err(e) => {
+            eprintln!("Failed to create table: {}", e);
+            std::process::exit(1);
+        }
+    }
+
     // Spawn a new thread for data collection (moved to async block)
-    tokio::spawn(async {
-        if let Err(e) = collect_data_loop().await {
+    let pool_clone = Arc::clone(&pool);
+    task::spawn(async move {
+        if let Err(e) = collect_data_loop(pool_clone).await {
             // Handle any errors from the collection loop
             eprintln!("Error during data collection: {}", e);
         }
