@@ -21,6 +21,14 @@ async fn collect_data_loop(
             println!("{}: Content changed!", current_time);
             prev_content = curr_content;
             println!("{:?}", prev_content);
+            // Get a connection from the pool
+            let conn = pool.get().unwrap();
+
+            // Execute a SQL query
+            conn.execute(
+                "INSERT INTO clipboard (content) VALUES (?1)",
+                params![prev_content],
+            )?;
         } else {
             println!("{}: Content unchanged.", current_time);
         }
@@ -46,13 +54,13 @@ async fn main() -> std::io::Result<()> {
     let conn = pool.get().unwrap();
     // Create the table
     match conn.execute(
-        "CREATE TABLE IF NOT EXISTS items (
+        "CREATE TABLE IF NOT EXISTS clipboard (
             id INTEGER PRIMARY KEY,
             label TEXT,
             content TEXT NOT NULL,
-            collection TEXT NOT NULL,
-            pined BOOLEAN NOT NULL,
-            hidden BOOLEAN NOT NULL
+            collection TEXT NOT NULL DEFAULT 'General',
+            pinned BOOLEAN NOT NULL DEFAULT 0,
+            hidden BOOLEAN NOT NULL DEFAULT 0
         )",
         params![],
     ) {
