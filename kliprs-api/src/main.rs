@@ -14,6 +14,9 @@ async fn collect_data_loop(
     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
     let mut prev_content: String = ctx.get_contents().unwrap();
 
+    // Get a connection from the pool
+    let conn = pool.get().unwrap();
+
     loop {
         let curr_content = ctx.get_contents().unwrap();
         let current_time = chrono::Local::now().format("%H:%M:%S");
@@ -21,8 +24,6 @@ async fn collect_data_loop(
             println!("{}: Content changed!", current_time);
             prev_content = curr_content;
             println!("{:?}", prev_content);
-            // Get a connection from the pool
-            let conn = pool.get().unwrap();
 
             // Execute a SQL query
             conn.execute(
@@ -40,6 +41,11 @@ async fn collect_data_loop(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    kliprs_core::initialize();
+    // Retrieve the config object
+    let config = kliprs_core::CONFIG.lock().unwrap();
+    print!("{:?}", config);
+
     // Initialize the SQLite connection pool
     let manager = SqliteConnectionManager::file("db.sqlite3");
     let pool = match Pool::new(manager) {
