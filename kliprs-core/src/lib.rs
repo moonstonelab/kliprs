@@ -3,11 +3,27 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt::Debug;
 use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::Once;
 
 lazy_static! {
     pub static ref CONFIG: Mutex<Option<Config>> = Mutex::new(None);
+}
+
+fn get_config_file_path() -> PathBuf {
+    if let Ok(env_config_file) = env::var("CLIPBOARD_CONFIG_FILE") {
+        PathBuf::from(env_config_file)
+    } else {
+        let config_dir = match dirs::config_dir() {
+            Some(dir) => dir,
+            None => {
+                eprintln!("Failed to determine platform's config directory");
+                return PathBuf::from("kliprs_config.json");
+            }
+        };
+        config_dir.join("kliprs_config.json")
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -33,6 +49,13 @@ impl Config {
         }
     }
 
+    pub fn to_file(&self, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+        let file = std::fs::File::create(path)?;
+        let writer = std::io::BufWriter::new(file);
+        serde_json::to_writer(writer, &self)?;
+        Ok(())
+    }
+
     pub fn update_from_env(&mut self) {
         if let Ok(env_buffer_size) = env::var("CLIPBOARD_BUFFER_SIZE") {
             if let Ok(env_buffer_size) = env_buffer_size.parse::<u8>() {
@@ -50,6 +73,11 @@ impl Config {
         if !path.exists() {
             let mut config = Self::default();
             config.update_from_env();
+
+            // Write the default config to the file
+            let config_path = get_config_file_path();
+            config.to_file(&config_path)?;
+
             return Ok(config);
         }
 
@@ -67,8 +95,9 @@ static INIT: Once = Once::new();
 
 pub fn initialize() {
     INIT.call_once(|| {
-        let path = Path::new("config.json");
-        match Config::from_file(&path) {
+        let path = get_config_file_path();
+        let config_path = path.as_path();
+        match Config::from_file(&config_path) {
             Ok(config) => {
                 let mut global_config = CONFIG.lock().unwrap();
                 *global_config = Some(config);
