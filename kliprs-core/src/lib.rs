@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt::Debug;
 use std::path::Path;
-use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::Once;
 
@@ -11,20 +10,7 @@ lazy_static! {
     pub static ref CONFIG: Mutex<Option<Config>> = Mutex::new(None);
 }
 
-fn get_config_file_path() -> PathBuf {
-    if let Ok(env_config_file) = env::var("CLIPBOARD_CONFIG_FILE") {
-        PathBuf::from(env_config_file)
-    } else {
-        let config_dir = match dirs::config_dir() {
-            Some(dir) => dir,
-            None => {
-                eprintln!("Failed to determine platform's config directory");
-                return PathBuf::from("kliprs_config.json");
-            }
-        };
-        config_dir.join("kliprs_config.json")
-    }
-}
+const CONFIG_FILE_NAME: &str = "kliprs_config.json";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -75,7 +61,7 @@ impl Config {
             config.update_from_env();
 
             // Write the default config to the file
-            let config_path = get_config_file_path();
+            let config_path = kliprs_utils::get_config_file_path(CONFIG_FILE_NAME);
             config.to_file(&config_path)?;
 
             return Ok(config);
@@ -95,7 +81,7 @@ static INIT: Once = Once::new();
 
 pub fn initialize() {
     INIT.call_once(|| {
-        let path = get_config_file_path();
+        let path = kliprs_utils::get_config_file_path(CONFIG_FILE_NAME);
         let config_path = path.as_path();
         match Config::from_file(&config_path) {
             Ok(config) => {
