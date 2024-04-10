@@ -22,7 +22,7 @@ sudo apt-get install libxcb-xfixes0-dev
 lib /DEF:sqlite3.def /OUT:sqlite3.lib /MACHINE:x64
 ```
 
-## How to compile rust application with sqlite3.lib on Windows.
+## How to compile rust application with sqlite3.lib on Windows
 
 ```powershell
 $Env:SQLITE3_LIB_DIR = "<path-to-folder-where-sqlite3-dot-lib-lives>"

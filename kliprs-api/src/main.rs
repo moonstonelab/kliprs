@@ -22,14 +22,18 @@ async fn collect_data_loop(
         let current_time = chrono::Local::now().format("%H:%M:%S");
         if curr_content != prev_content {
             println!("{}: Content changed!", current_time);
-            prev_content = curr_content;
-            println!("{:?}", prev_content);
-
-            // Execute a SQL query
-            conn.execute(
-                "INSERT INTO clipboard (content) VALUES (?1)",
-                params![prev_content],
-            )?;
+            // Check if curr_content is not empty string
+            if curr_content.is_empty() {
+                println!("{}: Content is empty string.", current_time);
+            } else {
+                prev_content = curr_content;
+                println!("{:?}", prev_content);
+                // Execute a SQL query
+                conn.execute(
+                    "INSERT INTO clipboard (content) VALUES (?1)",
+                    params![prev_content],
+                )?;
+            }
         } else {
             println!("{}: Content unchanged.", current_time);
         }
